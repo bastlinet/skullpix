@@ -2,11 +2,16 @@
 
 from .diagnostics import AssetError
 from .schema import Asset
-from .validation.checks import _analyze, image_statistics
+from .renderer import _render
+from .validation.checks import _analyze, image_statistics, validate_asset
 
 
 def inspect_asset(asset: Asset) -> dict:
-    result, rendered = _analyze(asset, strict=True)
+    if asset.frames or asset.animations:
+        result = validate_asset(asset, strict=True)
+        rendered = _render(asset) if result.valid else None
+    else:
+        result, rendered = _analyze(asset, strict=True)
     if not result.valid:
         raise AssetError(result)
     return {"version": asset.version,

@@ -62,8 +62,9 @@ at the top level and toggle its visibility if only some frames need it. The
 existing renderer receives the resolved layers as an ordinary asset. `render`
 without `--frame` still draws the top-level base layers.
 
-All declared frames, including unused ones, are validated. The top-level base
-is also validated. A source error inside an override points to
+All declared frames, including unused ones, are validated by the rendering,
+inspection and validation APIs and CLI commands. The top-level base is also
+validated. A source error inside an override points to
 `frames.<name>.overrides.<layer>...`. A geometric error inherited from another
 frame may point to the stable virtual path
 `frames.<name>.resolved.layers[index]...`.
@@ -117,6 +118,8 @@ Each record has keys in the order shown. Repeated exports are byte-identical.
 `<input-stem>-<animation>.png` beside the source. Neither output may overwrite
 the source; the metadata path must differ from the PNG path. Each output file
 is written atomically after validation.
+The PNG and JSON are separate writes: a metadata write failure can leave the
+PNG in place. E040 identifies the path that could not be written.
 
 ## GIF preview
 
@@ -135,6 +138,9 @@ extension; a false loop omits it, so the animation plays once.
 Every animation entry writes a full GIF frame, including repeated or completely
 transparent poses; entries are never merged.
 GIF is an inspection output; use the PNG sheet plus JSON for exact RGBA and timing.
+Previews render individual frames without constructing a sheet, so the sheet
+width limit does not apply. A preview may contain at most 16,777,216 pixels
+across all frame entries; exceeding this resource limit reports E060.
 
 ## CLI and Python
 
@@ -174,6 +180,7 @@ gif_data = preview_bytes(asset, "idle")
 | E057 | Requested animation does not exist. |
 | E058 | Sheet layout exceeds export limits. |
 | E059 | GIF preview needs more than 255 opaque colors. |
+| E060 | GIF preview exceeds the total pixel limit across all frames. |
 
 Existing E001/E002/E011–E040 diagnostics still apply. A duplicate frame or
 animation key is a parser-level E001 duplicate-key error. A wrong type or

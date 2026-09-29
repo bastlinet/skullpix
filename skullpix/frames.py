@@ -1,6 +1,7 @@
 """Resolve a named frame to ordinary v0.1 layers without mutating its source."""
 
 from difflib import get_close_matches
+import warnings
 
 from .diagnostics import AssetError, Issue, ValidationResult
 from .schema import Asset, Layer, LayerOverride, Transform
@@ -69,11 +70,21 @@ def resolve_frame(asset: Asset, name: str) -> Asset:
                        f"Layer name {target!r} occurs {count} times.", target)
             index = names.index(target)
             layers[index] = _override_layer(layers[index], override)
-    return asset.model_copy(update={"layers": layers, "frames": {}, "animations": {}}, deep=True)
+    # Pydantic inserts update values by reference even with deep=True. Copy
+    # after replacement so override operations are isolated, and the original
+    # frame graph is not needlessly copied just to be discarded.
+    return asset.model_copy(update={"layers": layers, "frames": {}, "animations": {}}).model_copy(deep=True)
 
 
 def render_frame(asset: Asset, name: str, *, strict: bool = False):
     """Render one named frame through the existing single-canvas renderer."""
-    from .renderer import render_asset
+    from .renderer import _render
+    from .validation.checks import validate_asset
 
-    return render_asset(resolve_frame(asset, name), strict=strict)
+    resolved = resolve_frame(asset, name)
+    result = validate_asset(asset, strict=strict)
+    if not result.valid:
+        raise AssetError(result)
+    for issue in result.warnings:
+        warnings.warn(f"{issue.code} {issue.path}: {issue.message}", UserWarning, stacklevel=2)
+    return _render(resolved).image

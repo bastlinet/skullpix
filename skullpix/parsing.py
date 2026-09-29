@@ -128,7 +128,8 @@ def load_asset(path: str | Path) -> Asset:
             animation_field = len(location) >= 3 and location[0] == "animations"
             if animation_field and location[-1] == "fps":
                 code, name = "E055", "invalid-animation-fps"
-            elif animation_field and location[-1] == "frames":
+            elif (animation_field and location[-1] == "frames"
+                  and error["type"] in ("missing", "too_short")):
                 code, name = "E054", "empty-animation"
             elif operation_error:
                 code, name = "E014", "unsupported-operation"

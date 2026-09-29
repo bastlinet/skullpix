@@ -2,7 +2,7 @@
 
 import json
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, NoReturn
 
 import typer
 
@@ -43,7 +43,7 @@ def _report(result: ValidationResult, *, json_output: bool, err: bool = False):
         typer.echo("Valid", err=err)
 
 
-def _fail(result: ValidationResult, json_output: bool):
+def _fail(result: ValidationResult, json_output: bool) -> NoReturn:
     _report(result, json_output=json_output, err=not json_output)
     raise typer.Exit(1)
 
@@ -71,17 +71,18 @@ def render(input: Input,
            json_output: Json = False):
     """Compile source into a canonical PNG (defaults to INPUT with .png suffix)."""
     asset = _load(input, json_output)
-    if frame is None:
+    if frame is None and not (asset.frames or asset.animations):
         result, rendered = _analyze(asset, strict=strict)
     else:
         try:
-            frame_asset = resolve_frame(asset, frame)
+            frame_asset = asset if frame is None else resolve_frame(asset, frame)
         except AssetError as exc:
             _fail(exc.result, json_output)
         result = validate_asset(asset, strict=strict)
         rendered = _render(frame_asset) if result.valid else None
     if not result.valid:
         _fail(result, json_output)
+    assert rendered is not None
     destination = output if output is not None else input.with_suffix(".png")
     try:
         if destination.resolve() == input.resolve():
@@ -111,19 +112,22 @@ def sheet(input: Input,
     except AssetError as exc:
         _fail(exc.result, json_output)
     destination = output if output is not None else input.with_name(f"{input.stem}-{animation}.png")
+    error_field, error_destination = "output", destination
     try:
         if destination.resolve() == input.resolve():
             raise ValueError("Output must not overwrite the asset source")
         if metadata is not None and metadata.resolve() in (input.resolve(), destination.resolve()):
+            error_field, error_destination = "metadata", metadata
             raise ValueError("Metadata path must differ from the source and PNG output")
         save_png(result.image, destination)
         if metadata is not None:
+            error_field, error_destination = "metadata", metadata
             write_bytes_atomic(metadata, metadata_bytes(result.metadata))
     except (OSError, ValueError) as exc:
-        _fail(ValidationResult([Issue("E040", "output-error", "output", str(exc),
-                                      value=str(destination))]), json_output)
+        _fail(ValidationResult([Issue("E040", "output-error", error_field, str(exc),
+                                      value=str(error_destination))]), json_output)
     if json_output:
-        _json({"valid": True, "output": str(destination),
+        _json({**ValidationResult().to_dict(), "output": str(destination),
                "metadata_output": str(metadata) if metadata is not None else None,
                "sheet": result.metadata})
     else:
@@ -152,7 +156,7 @@ def preview(input: Input,
         _fail(ValidationResult([Issue("E040", "output-error", "output", str(exc),
                                       value=str(destination))]), json_output)
     if json_output:
-        _json({"valid": True, "output": str(destination)})
+        _json({**ValidationResult().to_dict(), "output": str(destination)})
     else:
         typer.echo(f"Preview: {destination}")
 

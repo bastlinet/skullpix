@@ -57,9 +57,13 @@ def render_asset(asset: Asset, *, strict: bool = False) -> Image.Image:
     Strict mode rejects clipping. Invalid references and color constraints are
     always errors; call validate_asset for structured diagnostics without warnings.
     """
-    from .validation.checks import _analyze
+    from .validation.checks import _analyze, validate_asset
 
-    result, rendered = _analyze(asset, strict=strict)
+    if asset.frames or asset.animations:
+        result = validate_asset(asset, strict=strict)
+        rendered = _render(asset) if result.valid else None
+    else:
+        result, rendered = _analyze(asset, strict=strict)
     if not result.valid:
         raise AssetError(result)
     for issue in result.warnings:

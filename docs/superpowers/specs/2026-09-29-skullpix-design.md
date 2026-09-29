@@ -48,7 +48,7 @@ file size. Ordinary Pillow Image.save remains available for API callers.
 ## Constraints and edge cases
 
 Reject unknown fields and operations, duplicate YAML/JSON keys, YAML aliases
-and unsafe tags. Limit input to 4 MiB, dimensions to 4096 each and coordinates
+and non-JSON YAML tags. Limit input to 4 MiB and 64 nesting levels, dimensions to 4096 each and coordinates
 and box sizes to a magnitude of 65536 to prevent accidental enormous rasters
 and arithmetic overflow. No filesystem includes or implicit external inputs.
 Transparent RGB is preserved within layers for exact replace/fill; final

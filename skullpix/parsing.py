@@ -11,9 +11,23 @@ from .diagnostics import AssetError, Issue, ValidationResult
 from .schema import Asset
 
 MAX_INPUT_BYTES = 4 * 1024 * 1024
+MAX_NESTING = 64
+_JSON_TAGS = {f"tag:yaml.org,2002:{name}" for name in ("null", "bool", "int", "float", "str", "seq", "map")}
 
 
 class _Loader(yaml.SafeLoader):
+    def construct_object(self, node, deep=False):
+        if node.tag not in _JSON_TAGS:
+            raise yaml.constructor.ConstructorError(
+                None, None, f"Unsupported YAML tag {node.tag!r}; use JSON-compatible values", node.start_mark)
+        try:
+            return super().construct_object(node, deep=deep)
+        except (ValueError, TypeError, IndexError, KeyError, AttributeError, OverflowError) as exc:
+            # SafeLoader's built-in scalar constructors don't consistently raise
+            # YAMLError for invalid explicit tags (for example !!int '').
+            raise yaml.constructor.ConstructorError(
+                None, None, f"Invalid value for YAML tag {node.tag!r}: {exc}", node.start_mark) from exc
+
     def compose_node(self, parent, index):
         if self.check_event(yaml.AliasEvent):
             event = self.peek_event()
@@ -46,6 +60,19 @@ def _json_object(pairs):
 
 def _invalid_constant(value):
     raise ValueError(f"Invalid JSON constant {value}")
+
+
+def _check_nesting(data):
+    # Iterative: rejected values must also be safe to serialize as diagnostics.
+    stack = [(data, 0)]
+    while stack:
+        value, depth = stack.pop()
+        if depth > MAX_NESTING:
+            raise ValueError(f"Asset exceeds the {MAX_NESTING}-level nesting limit")
+        if isinstance(value, dict):
+            stack.extend((item, depth + 1) for item in value.values())
+        elif isinstance(value, list):
+            stack.extend((item, depth + 1) for item in value)
 
 
 def _path(location) -> str:
@@ -88,6 +115,7 @@ def load_asset(path: str | Path) -> Asset:
             data = yaml.load(source, Loader=_Loader)
         else:
             raise ValueError("Expected a .yaml, .yml or .json input file")
+        _check_nesting(data)
     except (ValueError, yaml.YAMLError, RecursionError) as exc:
         raise AssetError(ValidationResult([Issue("E001", "syntax-error", "$", str(exc))])) from exc
     try:

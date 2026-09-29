@@ -199,7 +199,8 @@ No implementation code was copied from Aseprite, LibreSprite or other editors.
 v0.1 compiles a single canvas. YAML aliases/includes, reusable components,
 variables and imported images are unsupported. Canvas dimensions are at most
 4096 per axis; coordinates are within −65536…65536, box sizes within 1…65536;
-source files are limited to 4 MiB. Large flood fills and lint scans are CPU
+source files are limited to 4 MiB and 64 nesting levels. Only JSON-compatible
+YAML tags are accepted. Large flood fills and lint scans are CPU
 work proportional to canvas area. This is a local tool, not a sandbox for
 adversarial public uploads.
 

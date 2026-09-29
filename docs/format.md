@@ -4,7 +4,11 @@ YAML is canonical; `.json` accepts the same data model. `.yml` also works.
 UTF-8 is required. Quote hexadecimal colors (`#` starts a YAML comment).
 PyYAML uses YAML 1.1 scalar rules; quote symbolic names such as `on`, `off`,
 `yes` or `no` if used as keys/values. Duplicate keys, aliases, merge keys and
-unsafe tags are rejected. There are no includes or external inputs.
+unsafe tags are rejected. Only JSON-compatible YAML tags are accepted (mappings,
+sequences, strings, numbers, booleans and null); sets, binary values and timestamps
+are rejected. Quote date-like strings. There are no includes or external inputs.
+Input nesting is limited to 64 levels, including invalid extra values, so error
+diagnostics cannot overflow the serializer.
 
 Unknown fields fail schema validation. The input root is one mapping.
 
@@ -162,13 +166,14 @@ pixels that an earlier operation already drew outside the original canvas.
 
 Primitive coordinate bounds, boxes and polygon vertices are checked even if
 their clipped parts would be transparent. Outline growth and transforms are
-checked using actual intermediate pixels. Diagnostics are ordered by source
+checked using actual intermediate pixels. Outline bounds include attempted
+neighbor writes even if the outline color itself is transparent. Diagnostics are ordered by source
 traversal; isolated pixel coordinates are ordered by y then x.
 
 | Code | Name | Meaning |
 | --- | --- | --- |
 | E000 | input-error | Cannot read source. |
-| E001 | syntax-error | Invalid encoding/YAML/JSON, duplicate key, alias, unsupported extension or file-size limit. |
+| E001 | syntax-error | Invalid encoding/YAML/JSON, duplicate key, alias, unsupported tag/extension or file-size/nesting limit. |
 | E002 | schema-error | Missing/extra field, invalid scalar type, dimension, coordinate, color declaration or transform. |
 | E011 | invalid-color | Direct color is not #RRGGBB/#RRGGBBAA. |
 | E012 | unknown-palette-color | Unknown symbolic reference; includes close-name suggestions. |

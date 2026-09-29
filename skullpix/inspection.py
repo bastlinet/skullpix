@@ -7,7 +7,7 @@ from .validation.checks import _analyze, image_statistics, validate_asset
 
 
 def inspect_asset(asset: Asset) -> dict:
-    if asset.frames or asset.animations:
+    if asset.frames or asset.animations or asset.tilesets:
         result = validate_asset(asset, strict=True)
         rendered = _render(asset) if result.valid else None
     else:

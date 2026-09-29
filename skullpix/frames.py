@@ -73,7 +73,9 @@ def resolve_frame(asset: Asset, name: str) -> Asset:
     # Pydantic inserts update values by reference even with deep=True. Copy
     # after replacement so override operations are isolated, and the original
     # frame graph is not needlessly copied just to be discarded.
-    return asset.model_copy(update={"layers": layers, "frames": {}, "animations": {}}).model_copy(deep=True)
+    return asset.model_copy(update={
+        "layers": layers, "frames": {}, "animations": {}, "tilesets": {},
+    }).model_copy(deep=True)
 
 
 def render_frame(asset: Asset, name: str, *, strict: bool = False):

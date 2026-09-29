@@ -8,6 +8,7 @@ import typer
 
 from . import __version__
 from .animation import metadata_bytes, preview_bytes, render_sheet
+from .tilesets import render_tileset
 from .diagnostics import AssetError, Issue, ValidationResult
 from .frames import resolve_frame
 from .inspection import inspect_asset
@@ -71,7 +72,7 @@ def render(input: Input,
            json_output: Json = False):
     """Compile source into a canonical PNG (defaults to INPUT with .png suffix)."""
     asset = _load(input, json_output)
-    if frame is None and not (asset.frames or asset.animations):
+    if frame is None and not (asset.frames or asset.animations or asset.tilesets):
         result, rendered = _analyze(asset, strict=strict)
     else:
         try:
@@ -132,6 +133,43 @@ def sheet(input: Input,
                "sheet": result.metadata})
     else:
         typer.echo(f"Sheet: {destination}")
+        if metadata is not None:
+            typer.echo(f"Metadata: {metadata}")
+
+
+@app.command()
+def tileset(input: Input,
+            name: Annotated[str, typer.Option("--tileset", help="Named tileset to export.")],
+            output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PNG path.")] = None,
+            metadata: Annotated[Path | None, typer.Option("--metadata", help="Output JSON metadata path.")] = None,
+            json_output: Json = False):
+    """Export a deterministic grid atlas with fixed canvas-sized cells."""
+    asset = _load(input, json_output)
+    try:
+        result = render_tileset(asset, name)
+    except AssetError as exc:
+        _fail(exc.result, json_output)
+    destination = output if output is not None else input.with_name(f"{input.stem}-{name}.png")
+    error_field, error_destination = "output", destination
+    try:
+        if destination.resolve() == input.resolve():
+            raise ValueError("Output must not overwrite the asset source")
+        if metadata is not None and metadata.resolve() in (input.resolve(), destination.resolve()):
+            error_field, error_destination = "metadata", metadata
+            raise ValueError("Metadata path must differ from the source and PNG output")
+        save_png(result.image, destination)
+        if metadata is not None:
+            error_field, error_destination = "metadata", metadata
+            write_bytes_atomic(metadata, metadata_bytes(result.metadata))
+    except (OSError, ValueError) as exc:
+        _fail(ValidationResult([Issue("E040", "output-error", error_field, str(exc),
+                                      value=str(error_destination))]), json_output)
+    if json_output:
+        _json({**ValidationResult().to_dict(), "output": str(destination),
+               "metadata_output": str(metadata) if metadata is not None else None,
+               "tileset": result.metadata})
+    else:
+        typer.echo(f"Tileset: {destination}")
         if metadata is not None:
             typer.echo(f"Metadata: {metadata}")
 

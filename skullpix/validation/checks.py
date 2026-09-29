@@ -11,6 +11,7 @@ from ..frames import resolve_frame
 from ..palette import color_references, frame_color_references, resolve_color
 from ..renderer import Rendered, _render
 from ..schema import Asset
+from .tilesets import reference_issues, seam_issues
 
 
 def image_statistics(image: Image.Image) -> dict[str, int]:
@@ -80,7 +81,7 @@ def validate_asset(asset: Asset, *, strict: bool = True) -> ValidationResult:
     either mode. Parsing/schema errors are reported by load_asset via AssetError.
     """
     result = _analyze(asset, strict=strict)[0]
-    if not asset.frames and not asset.animations:
+    if not (asset.frames or asset.animations or asset.tilesets):
         return result
     for path, color in frame_color_references(asset):
         try:
@@ -117,4 +118,7 @@ def validate_asset(asset: Asset, *, strict: bool = True) -> ValidationResult:
                     value=frame_name,
                     suggestions=tuple(get_close_matches(frame_name, asset.frames, n=3, cutoff=0.5)),
                 ))
+    result.issues.extend(reference_issues(asset))
+    if result.valid:
+        result.issues.extend(seam_issues(asset))
     return result

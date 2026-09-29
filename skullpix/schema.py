@@ -194,6 +194,18 @@ class Animation(Model):
     frames: Annotated[list[Name], Field(min_length=1)]
 
 
+class Seam(Model):
+    source: Name = Field(alias="from")
+    target: Name = Field(alias="to")
+    axis: Literal["x", "y"]
+
+
+class Tileset(Model):
+    columns: Annotated[StrictInt, Field(gt=0, le=4096)]
+    tiles: Annotated[list[Name], Field(min_length=1)]
+    seams: list[Seam] = Field(default_factory=list)
+
+
 class Asset(Model):
     version: Annotated[Literal[1], BeforeValidator(_integer)] = 1
     canvas: Canvas
@@ -202,3 +214,4 @@ class Asset(Model):
     constraints: Constraints = Field(default_factory=Constraints)
     frames: dict[Name, Frame] = Field(default_factory=dict)
     animations: dict[Name, Animation] = Field(default_factory=dict)
+    tilesets: dict[Name, Tileset] = Field(default_factory=dict)

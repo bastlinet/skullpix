@@ -1,0 +1,125 @@
+version: 1
+canvas: {width: 32, height: 32, background: clear}
+palette:
+  clear: "#00000000"
+  mortar: "#252b35"
+  stone: "#4f5965"
+  shade: "#3d4652"
+  edge: "#81909d"
+  light: "#657381"
+constraints: {max_colors: 5}
+
+# All tiles share masonry. Keep seam pixels stable; put wear inside the tile.
+layers:
+  - name: masonry
+    operations:
+      - rect: {box: [0, 0, 32, 32], color: mortar}
+      - rect: {box: [0, 2, 15, 12], color: stone}
+      - rect: {box: [17, 2, 15, 12], color: stone}
+      - rect: {box: [0, 16, 7, 14], color: shade}
+      - rect: {box: [9, 16, 15, 14], color: stone}
+      - rect: {box: [26, 16, 6, 14], color: shade}
+      - line: {from: [2, 3], to: [12, 3], color: light}
+      - line: {from: [19, 3], to: [29, 3], color: light}
+      - line: {from: [11, 17], to: [21, 17], color: light}
+      - line: {from: [11, 28], to: [22, 28], color: shade}
+  - name: surface
+    operations:
+      - line: {from: [0, 0], to: [31, 0], color: edge}
+      - line: {from: [0, 1], to: [31, 1], color: light}
+  - name: wear
+    operations: []
+  - name: cap
+    operations: []
+  - name: corner
+    operations: []
+
+frames:
+  floor: {}
+  floor_cracked:
+    extends: floor
+    overrides:
+      wear:
+        operations:
+          - line: {from: [11, 5], to: [8, 8], color: mortar}
+          - line: {from: [8, 8], to: [11, 12], color: mortar}
+          - pixels: {points: [[24, 6], [25, 7], [20, 22]], color: shade}
+  floor_left:
+    extends: floor
+    overrides:
+      cap:
+        operations:
+          - rect: {box: [0, 0, 4, 32], color: mortar}
+          - line: {from: [4, 0], to: [4, 31], color: edge}
+  floor_right:
+    extends: floor
+    overrides:
+      cap:
+        operations:
+          - rect: {box: [28, 0, 4, 32], color: mortar}
+          - line: {from: [27, 0], to: [27, 31], color: edge}
+  wall:
+    extends: floor
+    overrides:
+      surface: {visible: false}
+  wall_cracked:
+    extends: wall
+    overrides:
+      wear:
+        operations:
+          - line: {from: [19, 5], to: [23, 10], color: mortar}
+          - line: {from: [23, 10], to: [20, 12], color: mortar}
+          - line: {from: [17, 18], to: [14, 22], color: mortar}
+          - line: {from: [14, 22], to: [16, 26], color: mortar}
+  wall_left:
+    extends: floor_left
+    overrides:
+      surface: {visible: false}
+  wall_right:
+    extends: floor_right
+    overrides:
+      surface: {visible: false}
+  corner_left:
+    extends: floor_left
+    overrides:
+      corner:
+        operations:
+          - rect: {box: [6, 4, 4, 23], color: shade}
+          - line: {from: [7, 5], to: [7, 25], color: light}
+          - rect: {box: [6, 4, 18, 3], color: shade}
+          - line: {from: [7, 4], to: [22, 4], color: light}
+  corner_right:
+    extends: floor_right
+    overrides:
+      corner:
+        operations:
+          - rect: {box: [22, 4, 4, 23], color: shade}
+          - line: {from: [24, 5], to: [24, 25], color: light}
+          - rect: {box: [8, 4, 18, 3], color: shade}
+          - line: {from: [9, 4], to: [24, 4], color: light}
+
+tilesets:
+  stone:
+    columns: 4
+    tiles: [floor, floor_cracked, floor_left, floor_right, wall, wall_cracked, wall_left, wall_right, corner_left, corner_right]
+    # Only declare joins that must match; caps deliberately terminate the other edge.
+    seams:
+      - {from: floor, to: floor, axis: x}
+      - {from: floor, to: floor_cracked, axis: x}
+      - {from: floor_cracked, to: floor, axis: x}
+      - {from: floor_left, to: floor, axis: x}
+      - {from: floor, to: floor_right, axis: x}
+      - {from: corner_left, to: floor, axis: x}
+      - {from: floor, to: corner_right, axis: x}
+      - {from: floor, to: wall, axis: y}
+      - {from: floor_cracked, to: wall_cracked, axis: y}
+      - {from: wall, to: wall, axis: x}
+      - {from: wall, to: wall, axis: y}
+      - {from: wall, to: wall_cracked, axis: x}
+      - {from: wall_cracked, to: wall, axis: x}
+      - {from: wall, to: wall_cracked, axis: y}
+      - {from: wall_cracked, to: wall, axis: y}
+      - {from: wall_left, to: wall_left, axis: y}
+      - {from: wall_right, to: wall_right, axis: y}
+      - {from: corner_left, to: wall_left, axis: y}
+      - {from: corner_right, to: wall_right, axis: y}

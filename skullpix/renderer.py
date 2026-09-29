@@ -59,7 +59,7 @@ def render_asset(asset: Asset, *, strict: bool = False) -> Image.Image:
     """
     from .validation.checks import _analyze, validate_asset
 
-    if asset.frames or asset.animations:
+    if asset.frames or asset.animations or asset.tilesets:
         result = validate_asset(asset, strict=strict)
         rendered = _render(asset) if result.valid else None
     else:

@@ -1,7 +1,7 @@
 # Skullpix format v1
 
-Skullpix v0.2 keeps this source version and adds optional named frames and
-animations. See [animation semantics and exports](animation.md); the single
+Skullpix v0.3 keeps this source version with optional named frames, animations
+and tilesets. See [animation semantics](animation.md) and [tilesets](tilesets.md); the single
 canvas rules below still apply to every resolved frame.
 
 YAML is canonical; `.json` accepts the same data model. `.yml` also works.
@@ -26,6 +26,7 @@ Unknown fields fail schema validation. The input root is one mapping.
 | `constraints.max_colors` | Optional positive integer; distinct occupied colors in final image. |
 | `frames` | Optional mapping of named frames; each resolves to ordinary layers. |
 | `animations` | Optional mapping of explicit ordered frame lists with FPS and loop flag. |
+| `tilesets` | Optional mapping of ordered frame lists, grid columns and explicit seam contracts. |
 
 Palette names match `[A-Za-z_][A-Za-z0-9_-]*`, at most 128 characters. Hexadecimal
 digits are case-insensitive; names are case-sensitive. Six-digit colors imply

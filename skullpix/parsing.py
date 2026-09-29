@@ -126,7 +126,15 @@ def load_asset(path: str | Path) -> Asset:
             operation_error = error["type"] in ("union_tag_invalid", "union_tag_not_found")
             location = error["loc"]
             animation_field = len(location) >= 3 and location[0] == "animations"
-            if animation_field and location[-1] == "fps":
+            tileset_field = len(location) >= 3 and location[0] == "tilesets"
+            if tileset_field and location[-1] == "columns":
+                code, name = "E074", "invalid-tileset-columns"
+            elif (tileset_field and location[-1] == "tiles"
+                  and error["type"] in ("missing", "too_short")):
+                code, name = "E071", "empty-tileset"
+            elif tileset_field and location[-1] == "axis":
+                code, name = "E078", "invalid-seam-axis"
+            elif animation_field and location[-1] == "fps":
                 code, name = "E055", "invalid-animation-fps"
             elif (animation_field and location[-1] == "frames"
                   and error["type"] in ("missing", "too_short")):

@@ -42,7 +42,7 @@ def topology(image: Image.Image) -> tuple[list[tuple[int, int]], int]:
 
 
 def lint_asset(asset: Asset, *, strict: bool = True, off_palette: bool = True) -> ValidationResult:
-    animated = bool(asset.frames or asset.animations)
+    animated = bool(asset.frames or asset.animations or asset.tilesets)
     if animated:
         result = validate_asset(asset, strict=strict)
         if not result.valid:

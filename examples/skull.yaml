@@ -1,0 +1,63 @@
+version: 1
+canvas:
+  width: 32
+  height: 32
+  background: transparent
+palette:
+  transparent: "#00000000"
+  outline: "#21182f"
+  bone_dark: "#665979"
+  bone_mid: "#a89bb7"
+  bone_light: "#e1d6e8"
+constraints:
+  max_colors: 4
+layers:
+  - name: skull
+    operations:
+      - ellipse:
+          box: [7, 3, 18, 19]
+          color: bone_mid
+      - rect:
+          box: [10, 18, 12, 8]
+          color: bone_mid
+      - ellipse:
+          box: [9, 4, 14, 14]
+          color: bone_light
+      - line:
+          from: [8, 11]
+          to: [8, 15]
+          color: bone_dark
+      - outline:
+          color: outline
+          connectivity: 8
+  - name: face
+    operations:
+      - ellipse:
+          box: [10, 11, 5, 6]
+          color: outline
+      - ellipse:
+          box: [18, 11, 5, 6]
+          color: outline
+      - polygon:
+          points: [[16, 16], [14, 20], [18, 20]]
+          color: outline
+      - pixels:
+          color: bone_dark
+          points: [[11, 16], [12, 17], [20, 17], [21, 16]]
+  - name: teeth
+    operations:
+      - line:
+          from: [12, 23]
+          to: [12, 25]
+          color: outline
+      - line:
+          from: [16, 23]
+          to: [16, 25]
+          color: outline
+      - line:
+          from: [20, 23]
+          to: [20, 25]
+          color: outline
+      - pixels:
+          color: bone_light
+          points: [[11, 21], [12, 21], [15, 21], [16, 21], [19, 21], [20, 21]]

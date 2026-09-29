@@ -1,0 +1,48 @@
+version: 1
+canvas:
+  width: 24
+  height: 32
+  background: transparent
+palette:
+  transparent: "#00000000"
+  outline: "#212638"
+  steel: "#8197b1"
+  shine: "#e2edf2"
+  gold: "#dba750"
+  grip: "#764c49"
+constraints:
+  max_colors: 5
+layers:
+  - name: blade
+    operations:
+      - polygon:
+          points: [[17, 3], [21, 3], [21, 7], [10, 21], [7, 18]]
+          color: steel
+      - outline:
+          color: outline
+      - line:
+          from: [19, 5]
+          to: [9, 18]
+          color: shine
+  - name: grip
+    operations:
+      - polygon:
+          points: [[7, 20], [10, 22], [5, 28], [2, 26]]
+          color: grip
+      - outline:
+          color: outline
+      - line:
+          from: [4, 24]
+          to: [6, 26]
+          color: gold
+  - name: guard
+    operations:
+      - polygon:
+          points: [[4, 17], [5, 16], [14, 23], [12, 25]]
+          color: gold
+      - outline:
+          color: outline
+          connectivity: 4
+      - rect:
+          box: [2, 26, 4, 3]
+          color: gold

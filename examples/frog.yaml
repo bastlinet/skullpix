@@ -1,0 +1,67 @@
+version: 1
+canvas:
+  width: 32
+  height: 32
+  background: transparent
+palette:
+  transparent: "#00000000"
+  outline: "#18382e"
+  shadow: "#35734b"
+  base: "#6aaa52"
+  light: "#b4d875"
+  eye: "#eef2cd"
+constraints:
+  max_colors: 5
+layers:
+  - name: feet
+    operations:
+      - ellipse:
+          box: [3, 21, 10, 6]
+          color: shadow
+      - ellipse:
+          box: [21, 22, 9, 5]
+          color: shadow
+      - outline:
+          color: outline
+  - name: body
+    operations:
+      - ellipse:
+          box: [5, 12, 22, 13]
+          color: base
+      - ellipse:
+          box: [6, 6, 9, 11]
+          color: base
+      - ellipse:
+          box: [18, 7, 9, 10]
+          color: base
+      - ellipse:
+          box: [10, 17, 14, 7]
+          color: light
+      - outline:
+          color: outline
+  - name: eyes
+    transform:
+      translate: [0, -1]
+    operations:
+      - ellipse:
+          box: [8, 9, 5, 6]
+          color: eye
+      - ellipse:
+          box: [20, 10, 4, 5]
+          color: eye
+      - pixels:
+          points: [[11, 10], [11, 11], [22, 12], [22, 13]]
+          color: outline
+  - name: smile
+    operations:
+      - line:
+          from: [12, 17]
+          to: [16, 19]
+          color: outline
+      - line:
+          from: [16, 19]
+          to: [21, 17]
+          color: outline
+      - pixels:
+          points: [[8, 18], [7, 20], [25, 20]]
+          color: shadow

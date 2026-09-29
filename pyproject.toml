@@ -1,0 +1,33 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "skullpix"
+version = "0.1.0"
+description = "A deterministic, headless pixel-art compiler for humans and coding agents"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+  "Pillow==12.3.0",
+  "pydantic>=2.12,<3",
+  "typer>=0.20,<1",
+  "PyYAML>=6.0.3,<7",
+]
+
+[project.scripts]
+skullpix = "skullpix.cli:app"
+
+[dependency-groups]
+dev = ["pytest>=8,<10"]
+
+[project.optional-dependencies]
+test = ["pytest>=8,<10"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.hatch.build.targets.wheel]
+packages = ["skullpix"]

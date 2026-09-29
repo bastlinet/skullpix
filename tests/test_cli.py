@@ -112,4 +112,4 @@ def test_render_cannot_overwrite_source(source):
 
 def test_help_and_version():
     assert runner.invoke(app, ["--help"]).exit_code == 0
-    assert runner.invoke(app, ["--version"]).stdout.strip() == "0.1.0"
+    assert runner.invoke(app, ["--version"]).stdout.strip() == "0.2.0"

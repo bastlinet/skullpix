@@ -6,9 +6,10 @@ from PIL import Image
 
 from ..diagnostics import Issue, ValidationResult
 from ..operations.fill import NEIGHBORS_8
-from ..palette import color_references, resolve_color
+from ..frames import resolve_frame
+from ..palette import all_color_references, resolve_color
 from ..schema import Asset
-from .checks import _analyze, image_statistics
+from .checks import _analyze, image_statistics, validate_asset
 
 
 def topology(image: Image.Image) -> tuple[list[tuple[int, int]], int]:
@@ -41,13 +42,20 @@ def topology(image: Image.Image) -> tuple[list[tuple[int, int]], int]:
 
 
 def lint_asset(asset: Asset, *, strict: bool = True, off_palette: bool = True) -> ValidationResult:
-    result, rendered = _analyze(asset, strict=strict)
-    if rendered is None:
-        return result
+    animated = bool(asset.frames or asset.animations)
+    if animated:
+        result = validate_asset(asset, strict=strict)
+        if not result.valid:
+            return result
+        rendered = None
+    else:
+        result, rendered = _analyze(asset, strict=strict)
+        if rendered is None:
+            return result
     palette = {name: resolve_color(name, asset.palette) for name in asset.palette}
     declared = set(palette.values())
     used = set()
-    for path, color in color_references(asset):
+    for path, color in all_color_references(asset):
         rgba = resolve_color(color, asset.palette)
         used.add(rgba)
         if off_palette and color.startswith("#") and rgba not in declared:
@@ -57,15 +65,25 @@ def lint_asset(asset: Asset, *, strict: bool = True, off_palette: bool = True) -
         if rgba not in used:
             result.issues.append(Issue("W002", "unused-palette-color", f"palette.{name}",
                 f"Palette color {name!r} is unused by the source.", "warning", value=name))
-    isolated, components = topology(rendered.image)
+    if animated:
+        for name in asset.frames:
+            frame = resolve_frame(asset, name)
+            frame_rendered = _analyze(frame, strict=strict)[1]
+            _append_topology(result, frame_rendered.image, f"frames.{name}")
+    else:
+        _append_topology(result, rendered.image, "$")
+    return result
+
+
+def _append_topology(result: ValidationResult, image: Image.Image, path: str) -> None:
+    isolated, components = topology(image)
     if isolated:
-        result.issues.append(Issue("W003", "isolated-pixel", "$",
+        result.issues.append(Issue("W003", "isolated-pixel", path,
             f"{len(isolated)} isolated pixels (no occupied 8-connected neighbor).", "warning",
             value=len(isolated), points=tuple(isolated)))
     if components > 1:
-        result.issues.append(Issue("W004", "disconnected-components", "$",
+        result.issues.append(Issue("W004", "disconnected-components", path,
             f"Sprite contains {components} disconnected 8-connected components.", "warning", value=components))
-    count = image_statistics(rendered.image)["used_colors"]
-    result.issues.append(Issue("I001", "palette-size", "$",
+    count = image_statistics(image)["used_colors"]
+    result.issues.append(Issue("I001", "palette-size", path,
         f"Rendered sprite uses {count} occupied RGBA colors.", "info", value=count))
-    return result

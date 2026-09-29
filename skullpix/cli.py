@@ -7,10 +7,13 @@ from typing import Annotated
 import typer
 
 from . import __version__
+from .animation import metadata_bytes, preview_bytes, render_sheet
 from .diagnostics import AssetError, Issue, ValidationResult
+from .frames import resolve_frame
 from .inspection import inspect_asset
 from .parsing import load_asset
-from .png import save_png
+from .png import save_png, write_bytes_atomic
+from .renderer import _render
 from .validation import lint_asset, validate_asset
 from .validation.checks import _analyze
 
@@ -64,10 +67,19 @@ def main(version: Annotated[bool, typer.Option("--version", is_eager=True,
 def render(input: Input,
            output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PNG path.")] = None,
            strict: Annotated[bool, typer.Option(help="Reject drawing outside the canvas.")] = False,
+           frame: Annotated[str | None, typer.Option("--frame", help="Render a named frame.")] = None,
            json_output: Json = False):
     """Compile source into a canonical PNG (defaults to INPUT with .png suffix)."""
     asset = _load(input, json_output)
-    result, rendered = _analyze(asset, strict=strict)
+    if frame is None:
+        result, rendered = _analyze(asset, strict=strict)
+    else:
+        try:
+            frame_asset = resolve_frame(asset, frame)
+        except AssetError as exc:
+            _fail(exc.result, json_output)
+        result = validate_asset(asset, strict=strict)
+        rendered = _render(frame_asset) if result.valid else None
     if not result.valid:
         _fail(result, json_output)
     destination = output if output is not None else input.with_suffix(".png")
@@ -84,6 +96,65 @@ def render(input: Input,
         if result.issues:
             _report(result, json_output=False, err=True)
         typer.echo(f"Rendered: {destination}")
+
+
+@app.command()
+def sheet(input: Input,
+          animation: Annotated[str, typer.Option("--animation", help="Animation to export.")],
+          output: Annotated[Path | None, typer.Option("--output", "-o", help="Output PNG path.")] = None,
+          metadata: Annotated[Path | None, typer.Option("--metadata", help="Optional JSON metadata path.")] = None,
+          json_output: Json = False):
+    """Export one animation as a deterministic, one-row PNG spritesheet."""
+    asset = _load(input, json_output)
+    try:
+        result = render_sheet(asset, animation)
+    except AssetError as exc:
+        _fail(exc.result, json_output)
+    destination = output if output is not None else input.with_name(f"{input.stem}-{animation}.png")
+    try:
+        if destination.resolve() == input.resolve():
+            raise ValueError("Output must not overwrite the asset source")
+        if metadata is not None and metadata.resolve() in (input.resolve(), destination.resolve()):
+            raise ValueError("Metadata path must differ from the source and PNG output")
+        save_png(result.image, destination)
+        if metadata is not None:
+            write_bytes_atomic(metadata, metadata_bytes(result.metadata))
+    except (OSError, ValueError) as exc:
+        _fail(ValidationResult([Issue("E040", "output-error", "output", str(exc),
+                                      value=str(destination))]), json_output)
+    if json_output:
+        _json({"valid": True, "output": str(destination),
+               "metadata_output": str(metadata) if metadata is not None else None,
+               "sheet": result.metadata})
+    else:
+        typer.echo(f"Sheet: {destination}")
+        if metadata is not None:
+            typer.echo(f"Metadata: {metadata}")
+
+
+@app.command()
+def preview(input: Input,
+            animation: Annotated[str, typer.Option("--animation", help="Animation to preview.")],
+            output: Annotated[Path | None, typer.Option("--output", "-o", help="Output GIF path.")] = None,
+            json_output: Json = False):
+    """Export a deterministic animated GIF preview."""
+    asset = _load(input, json_output)
+    try:
+        data = preview_bytes(asset, animation)
+    except AssetError as exc:
+        _fail(exc.result, json_output)
+    destination = output if output is not None else input.with_name(f"{input.stem}-{animation}.gif")
+    try:
+        if destination.resolve() == input.resolve():
+            raise ValueError("Output must not overwrite the asset source")
+        write_bytes_atomic(destination, data)
+    except (OSError, ValueError) as exc:
+        _fail(ValidationResult([Issue("E040", "output-error", "output", str(exc),
+                                      value=str(destination))]), json_output)
+    if json_output:
+        _json({"valid": True, "output": str(destination)})
+    else:
+        typer.echo(f"Preview: {destination}")
 
 
 @app.command()

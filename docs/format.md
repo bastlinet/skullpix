@@ -1,5 +1,9 @@
 # Skullpix format v1
 
+Skullpix v0.2 keeps this source version and adds optional named frames and
+animations. See [animation semantics and exports](animation.md); the single
+canvas rules below still apply to every resolved frame.
+
 YAML is canonical; `.json` accepts the same data model. `.yml` also works.
 UTF-8 is required. Quote hexadecimal colors (`#` starts a YAML comment).
 PyYAML uses YAML 1.1 scalar rules; quote symbolic names such as `on`, `off`,
@@ -20,6 +24,8 @@ Unknown fields fail schema validation. The input root is one mapping.
 | `palette` | Mapping of symbolic names to quoted `#RRGGBB`/`#RRGGBBAA`; default `{}`. |
 | `layers` | Ordered list; default `[]`. |
 | `constraints.max_colors` | Optional positive integer; distinct occupied colors in final image. |
+| `frames` | Optional mapping of named frames; each resolves to ordinary layers. |
+| `animations` | Optional mapping of explicit ordered frame lists with FPS and loop flag. |
 
 Palette names match `[A-Za-z_][A-Za-z0-9_-]*`, at most 128 characters. Hexadecimal
 digits are case-insensitive; names are case-sensitive. Six-digit colors imply

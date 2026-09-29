@@ -28,3 +28,22 @@ def color_references(asset: Asset) -> Iterator[tuple[str, str]]:
             for field in ("color", "from", "to"):
                 if isinstance(params.get(field), str):
                     yield f"{prefix}.{field}", params[field]
+
+
+def frame_color_references(asset: Asset) -> Iterator[tuple[str, str]]:
+    """Source locations of operation colors introduced by frame overrides."""
+    for frame_name, frame in asset.frames.items():
+        for layer_name, override in frame.overrides.items():
+            if override.operations is None:
+                continue
+            for number, op in enumerate(override.operations):
+                prefix = f"frames.{frame_name}.overrides.{layer_name}.operations[{number}].{op.kind}"
+                params = op.params.model_dump(by_alias=True)
+                for field in ("color", "from", "to"):
+                    if isinstance(params.get(field), str):
+                        yield f"{prefix}.{field}", params[field]
+
+
+def all_color_references(asset: Asset) -> Iterator[tuple[str, str]]:
+    yield from color_references(asset)
+    yield from frame_color_references(asset)

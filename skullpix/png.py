@@ -39,7 +39,11 @@ def png_bytes(image: Image.Image) -> bytes:
 
 def save_png(image: Image.Image, path: str | Path) -> None:
     """Atomically write canonical PNG bytes, creating parent directories."""
-    data = png_bytes(image)
+    write_bytes_atomic(path, png_bytes(image))
+
+
+def write_bytes_atomic(path: str | Path, data: bytes) -> None:
+    """Shared atomic writer for PNG, metadata and preview files."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None

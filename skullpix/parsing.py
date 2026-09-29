@@ -124,10 +124,27 @@ def load_asset(path: str | Path) -> Asset:
         issues = []
         for error in exc.errors(include_url=False):
             operation_error = error["type"] in ("union_tag_invalid", "union_tag_not_found")
+            location = error["loc"]
+            animation_field = len(location) >= 3 and location[0] == "animations"
+            tileset_field = len(location) >= 3 and location[0] == "tilesets"
+            if tileset_field and location[-1] == "columns":
+                code, name = "E074", "invalid-tileset-columns"
+            elif (tileset_field and location[-1] == "tiles"
+                  and error["type"] in ("missing", "too_short")):
+                code, name = "E071", "empty-tileset"
+            elif tileset_field and location[-1] == "axis":
+                code, name = "E078", "invalid-seam-axis"
+            elif animation_field and location[-1] == "fps":
+                code, name = "E055", "invalid-animation-fps"
+            elif (animation_field and location[-1] == "frames"
+                  and error["type"] in ("missing", "too_short")):
+                code, name = "E054", "empty-animation"
+            elif operation_error:
+                code, name = "E014", "unsupported-operation"
+            else:
+                code, name = "E002", "schema-error"
             issues.append(Issue(
-                "E014" if operation_error else "E002",
-                "unsupported-operation" if operation_error else "schema-error",
-                _path(error["loc"]),
+                code, name, _path(location),
                 "Expected exactly one supported operation key: pixel, pixels, line, rect, ellipse, "
                 "polygon, fill, replace_color, outline" if operation_error else error["msg"],
                 value=_json_value(error.get("input")),

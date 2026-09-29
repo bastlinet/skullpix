@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "skullpix"
-version = "0.1.0"
+version = "0.3.0"
 description = "A deterministic, headless pixel-art compiler for humans and coding agents"
 readme = "README.md"
 requires-python = ">=3.12"

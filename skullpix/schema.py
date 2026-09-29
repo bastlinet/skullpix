@@ -166,9 +166,52 @@ class Constraints(Model):
     max_colors: Annotated[StrictInt, Field(gt=0)] | None = None
 
 
+class TransformOverride(Model):
+    """Only specified transform fields replace inherited fields."""
+
+    translate: Point | None = None
+    mirror_x: StrictBool | None = None
+    mirror_y: StrictBool | None = None
+    rotate: Annotated[Literal[0, 90, 180, 270], BeforeValidator(_integer)] | None = None
+
+
+class LayerOverride(Model):
+    """A named layer patch; operations, if specified, replace the full list."""
+
+    visible: StrictBool | None = None
+    transform: TransformOverride | None = None
+    operations: list[Operation] | None = None
+
+
+class Frame(Model):
+    extends: Name | None = None
+    overrides: dict[Annotated[str, Field(min_length=1, max_length=128)], LayerOverride] = Field(default_factory=dict)
+
+
+class Animation(Model):
+    fps: Annotated[StrictInt, Field(gt=0, le=1000)]
+    loop: StrictBool = True
+    frames: Annotated[list[Name], Field(min_length=1)]
+
+
+class Seam(Model):
+    source: Name = Field(alias="from")
+    target: Name = Field(alias="to")
+    axis: Literal["x", "y"]
+
+
+class Tileset(Model):
+    columns: Annotated[StrictInt, Field(gt=0, le=4096)]
+    tiles: Annotated[list[Name], Field(min_length=1)]
+    seams: list[Seam] = Field(default_factory=list)
+
+
 class Asset(Model):
     version: Annotated[Literal[1], BeforeValidator(_integer)] = 1
     canvas: Canvas
     palette: dict[Name, HexColor] = Field(default_factory=dict)
     layers: list[Layer] = Field(default_factory=list)
     constraints: Constraints = Field(default_factory=Constraints)
+    frames: dict[Name, Frame] = Field(default_factory=dict)
+    animations: dict[Name, Animation] = Field(default_factory=dict)
+    tilesets: dict[Name, Tileset] = Field(default_factory=dict)

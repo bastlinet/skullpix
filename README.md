@@ -59,9 +59,13 @@ skullpix --version
 | Command | Behavior |
 | --- | --- |
 | `render INPUT [-o OUTPUT] [--strict] [--json]` | Write PNG; default output replaces the source extension with `.png`. Create missing output directories. |
+| `render INPUT --frame NAME [-o OUTPUT] [--strict] [--json]` | Render one named frame through the same renderer. |
 | `validate INPUT [--json]` | Check parsing, schema, colors, names, coordinates, transforms and constraints. |
 | `lint INPUT [--json] [--no-strict] [--no-off-palette]` | Validate and report unused/off-palette colors, isolated pixels, components and used-color count. |
 | `inspect INPUT [--json]` | Validate and report dimensions, layers, operations, colors and pixel counts. |
+| `sheet INPUT --animation NAME [-o PNG] [--metadata JSON] [--json]` | Export fixed-size cells in explicit animation order. |
+| `tileset INPUT --tileset NAME [-o PNG] [--metadata JSON] [--json]` | Export named frames as a row-major grid with declared seam validation. |
+| `preview INPUT --animation NAME [-o GIF] [--json]` | Export an animated GIF preview. |
 
 Exit codes: **0** for success (including lint warnings), **1** for input,
 validation or output errors, **2** for CLI usage errors. JSON mode writes one
@@ -124,11 +128,109 @@ Also exported: `Asset`, `AssetError`, `Issue`, `ValidationResult`, `lint_asset`,
 `inspect_asset`, `png_bytes`. `Asset.model_validate(data)` accepts a Python
 mapping. `Asset.model_json_schema()` exposes the authoring schema.
 
+## Animation in v0.2
+
+Top-level `layers` describe a shared starting pose. A named root frame uses
+those layers; a child inherits another frame and changes only named layers:
+
+```yaml
+layers:
+  - name: head
+    operations:
+      - pixel: {at: [12, 8], color: bone}
+frames:
+  idle_0: {}
+  idle_1:
+    extends: idle_0
+    overrides:
+      head:
+        transform: {translate: [0, -1]}
+animations:
+  idle:
+    fps: 8
+    loop: true
+    frames: [idle_0, idle_1, idle_0]
+```
+
+The example assumes `bone` exists in the palette. `frames` and `animations`
+are optional, so existing assets still render as before. In an override,
+`visible` replaces visibility, specified transform fields replace only those
+fields, and `operations` replaces the entire operation list. Other fields and
+layers remain inherited. Layer order does not change. Inheritance cycles,
+unknown parents and unknown override targets are validation errors. See the
+[exact animation format](docs/animation.md).
+
+```sh
+skullpix render examples/animated_skeleton.yaml --frame idle_0 -o build/idle_0.png
+skullpix sheet examples/animated_skeleton.yaml --animation idle \
+  -o build/idle.png --metadata build/idle.json
+skullpix preview examples/animated_skeleton.yaml --animation idle -o build/idle.gif
+```
+
+The [animated skeleton](examples/animated_skeleton.yaml) has 6 idle, 8 walk
+and 4 attack frames. Its 18 named frames reuse one set of layers and contain
+only small pose changes.
+
+```python
+from skullpix import load_asset, render_frame, render_sheet, metadata_bytes, preview_bytes, save_png
+
+asset = load_asset("examples/animated_skeleton.yaml")
+image = render_frame(asset, "idle_0", strict=True)
+sheet = render_sheet(asset, "idle")  # .image and .metadata
+save_png(sheet.image, "build/idle.png")
+open("build/idle.json", "wb").write(metadata_bytes(sheet.metadata))
+open("build/idle.gif", "wb").write(preview_bytes(asset, "idle"))
+```
+
 `load_asset` validates syntax/schema and raises `AssetError` with `.result` for
 structured diagnostics. `validate_asset` checks a loaded model's semantics and
 returns a result. `render_asset` raises `AssetError` on errors; relaxed clipping
 emits Python `UserWarning` messages. The API never invokes the CLI or reads
 configuration, environment variables or network services.
+
+## Tilesets in v0.3
+
+Tiles reuse named frames and inheritance. Declare their order and a fixed number
+of columns; IDs are zero-based list positions. Only explicitly declared seams
+are checked, so caps and corners can have different outer edges:
+
+```yaml
+frames:
+  floor: {}
+  cracked:
+    extends: floor
+    overrides:
+      wear:
+        operations:
+          - line: {from: [12, 5], to: [15, 9], color: shadow}
+tilesets:
+  stone:
+    columns: 2
+    tiles: [floor, cracked]
+    seams:
+      - {from: floor, to: cracked, axis: x}
+```
+
+This fragment assumes a `wear` layer and `shadow` palette entry. An `x` seam
+compares right/left edges; `y` compares bottom/top edges. Mismatched RGBA pixels
+are validation errors. See [exact tileset semantics and diagnostics](docs/tilesets.md).
+
+```sh
+skullpix tileset examples/stone_tiles.yaml --tileset stone \
+  -o build/stone.png --metadata build/stone.json
+uv run python examples/stone_room.py
+```
+
+The generic example contains ten floor, wall, cap and corner tiles. The room
+script places them explicitly; it is an example consumer, not an autotile solver.
+
+```python
+from skullpix import load_asset, render_tileset, save_png, metadata_bytes
+
+grid = render_tileset(load_asset("examples/stone_tiles.yaml"), "stone")
+save_png(grid.image, "build/stone.png")
+open("build/stone.json", "wb").write(metadata_bytes(grid.metadata))
+```
 
 ## Determinism and tests
 
@@ -176,27 +278,31 @@ skullpix/
   operations/        primitives, fill, outline, transforms
   renderer.py        independent layer rendering and composition
   validation/        semantic checks and optional lint advice
+  frames.py          named-frame resolution to ordinary layers
+  animation.py       one-row sheets, JSON metadata, GIF previews
+  tilesets.py        fixed-cell grids and tile metadata
   inspection.py      stable asset statistics
   diagnostics.py     shared error/warning contract
   png.py             canonical PNG bytes and atomic save
   cli.py             Typer command adapters
 ```
 
-## Non-goals for v0.1
+## Non-goals
 
 - No GUI, painting UI or Aseprite clone.
 - No vector graphics, arbitrary subpixel coordinates or arbitrary-angle rotation.
 - No anti-aliased rendering or Photoshop-style filters.
 - No AI image generation, image-generation model dependency or embedded LLM APIs.
 - No game-engine dependency or Godot dependency.
-- No proprietary formats, raster import, animation, spritesheets or tilesets.
+- No proprietary formats, raster import or automatic terrain selection.
+- No animation editor, interactive timeline or automatic sheet packing.
 
 Skullpix is an independent implementation built on general raster primitives.
 No implementation code was copied from Aseprite, LibreSprite or other editors.
 
 ## Limits and future direction
 
-v0.1 compiles a single canvas. YAML aliases/includes, reusable components,
+Each frame renders on the same canvas. YAML aliases/includes, reusable components,
 variables and imported images are unsupported. Canvas dimensions are at most
 4096 per axis; coordinates are within −65536…65536, box sizes within 1…65536;
 source files are limited to 4 MiB and 64 nesting levels. Only JSON-compatible
@@ -204,15 +310,15 @@ YAML tags are accepted. Large flood fills and lint scans are CPU
 work proportional to canvas area. This is a local tool, not a sandbox for
 adversarial public uploads.
 
-For **v0.2**, keep the scope to named frames, animation tags/timing, deterministic
-spritesheet packing and JSON metadata. Existing `Layer` and operation models
-can be reused inside a future `frames` container; `version` provides an explicit
-format migration boundary. See [future format notes](docs/future.md).
+v0.3 keeps the v1 source version because all v0.1 assets retain their meaning.
+Spritesheets use one horizontal row with no trimming or scaling. GIF previews
+have one-bit transparency and 10 ms timing granularity; PNG sheets and JSON
+metadata retain full RGBA and millisecond durations. See [future work](docs/future.md).
 
-Later candidates include tileset constraints, indexed palettes, reusable
+Later candidates include terrain/autotile rules, indexed palettes, reusable
 components, deterministic noise, controlled dithering, edge highlights,
 visual regression tools, optional Godot resource export, and Aseprite or
-Pixelorama adapters. None is implemented in v0.1.
+Pixelorama adapters. These remain outside the current release.
 
 ## License
 

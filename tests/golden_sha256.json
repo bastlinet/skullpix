@@ -1,4 +1,10 @@
 {
+  "animated_skeleton-attack.json": "1dde68e0530b1f004ef27b45949075d0b3cbd9bc2655126c72a130176e1ed863",
+  "animated_skeleton-attack.png": "72ec72e079f30348cc5161f16048d4c3b667105a164476a762b2765915b7447d",
+  "animated_skeleton-idle.json": "5b1bbd4e255cb6093da3d2492610ca4811de093659a1c278fddac10f757ccd50",
+  "animated_skeleton-idle.png": "93c3381c1cdbb192c0ce1c826529545d86622306b5c88a60e50bdd387b0039ba",
+  "animated_skeleton-walk.json": "82fcbc8f125db86e7db76eedd64473118b09267a4ecab2efec3b14b7ded94dd5",
+  "animated_skeleton-walk.png": "953d1a1094e1a5a13a4a36f7015579bb0725cc1cc74571d4c1b93a99242742a6",
   "frog.png": "57de0e718d379d12636f540c5b07d3ce5ee0a4f11ef6535ad9019d91ebc04668",
   "skull.png": "c2d7e8e5711fcf0ea151c04f3abd9a1f67e71319f06bf96c015d2cf8a66eb6a2",
   "sword.png": "c8423937f1543ec379e4ba28d548eb7195e387be7bd9154cb9e6525ee74549b2"

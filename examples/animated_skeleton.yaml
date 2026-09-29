@@ -1,0 +1,186 @@
+version: 1
+canvas:
+  width: 32
+  height: 32
+  background: transparent
+palette:
+  transparent: "#00000000"
+  outline: "#21182f"
+  bone_dark: "#665979"
+  bone_mid: "#a89bb7"
+  bone_light: "#e1d6e8"
+  cloth: "#514568"
+  handle: "#a06c52"
+  steel: "#9db5c6"
+  steel_light: "#dfedf1"
+
+# These layers are the shared starting pose for every root frame.
+layers:
+  - name: left_leg
+    operations:
+      - line: {from: [13, 23], to: [11, 28], color: bone_mid}
+      - rect: {box: [9, 28, 5, 2], color: bone_mid}
+      - outline: {color: outline}
+  - name: right_leg
+    operations:
+      - line: {from: [19, 23], to: [21, 28], color: bone_mid}
+      - rect: {box: [19, 28, 5, 2], color: bone_mid}
+      - outline: {color: outline}
+  - name: pelvis
+    operations:
+      - rect: {box: [11, 21, 11, 4], color: cloth}
+      - outline: {color: outline}
+  - name: left_arm
+    operations:
+      - line: {from: [11, 15], to: [7, 21], color: bone_mid}
+      - outline: {color: outline}
+  - name: right_arm
+    operations:
+      - line: {from: [21, 15], to: [25, 21], color: bone_mid}
+      - outline: {color: outline}
+  - name: torso
+    operations:
+      - ellipse: {box: [10, 12, 13, 11], color: bone_mid}
+      - outline: {color: outline}
+      - line: {from: [12, 16], to: [20, 16], color: bone_dark}
+      - line: {from: [12, 19], to: [20, 19], color: bone_dark}
+      - pixels: {points: [[15, 17], [17, 17]], color: bone_light}
+  - name: skull
+    operations:
+      - ellipse: {box: [10, 3, 13, 12], color: bone_mid}
+      - ellipse: {box: [12, 4, 9, 8], color: bone_light}
+      - outline: {color: outline}
+  - name: face
+    operations:
+      - pixels: {points: [[13, 9], [14, 9], [18, 9], [19, 9], [16, 11]], color: outline}
+      - line: {from: [14, 13], to: [18, 13], color: bone_dark}
+  - name: sword
+    visible: false
+    operations:
+      - line: {from: [25, 20], to: [26, 17], color: handle}
+      - line: {from: [26, 17], to: [29, 7], color: steel}
+      - pixels: {points: [[28, 10], [28, 11]], color: steel_light}
+      - outline: {color: outline, connectivity: 4}
+
+# Each frame changes only named layers. Unmentioned fields and layers inherit.
+frames:
+  idle_0: {}
+  idle_1:
+    extends: idle_0
+    overrides:
+      skull: {transform: {translate: [0, -1]}}
+      face: {transform: {translate: [0, -1]}}
+  idle_2:
+    extends: idle_1
+    overrides:
+      torso: {transform: {translate: [0, -1]}}
+  idle_3:
+    extends: idle_0
+    overrides:
+      skull: {transform: {translate: [0, 1]}}
+      face: {transform: {translate: [0, 1]}}
+  idle_4:
+    extends: idle_3
+    overrides:
+      torso: {transform: {translate: [0, 1]}}
+  idle_5:
+    extends: idle_0
+    overrides:
+      face:
+        operations:
+          - line: {from: [13, 10], to: [14, 10], color: outline}
+          - line: {from: [18, 10], to: [19, 10], color: outline}
+          - pixel: {at: [16, 11], color: outline}
+          - line: {from: [14, 13], to: [18, 13], color: bone_dark}
+
+  walk_0:
+    extends: idle_0
+    overrides:
+      left_leg: {transform: {translate: [-1, 0]}}
+      right_leg: {transform: {translate: [1, 0]}}
+  walk_1:
+    extends: walk_0
+    overrides:
+      torso: {transform: {translate: [0, -1]}}
+      skull: {transform: {translate: [0, -1]}}
+      face: {transform: {translate: [0, -1]}}
+  walk_2:
+    extends: idle_0
+    overrides:
+      left_leg: {transform: {translate: [-2, 0]}}
+      right_leg: {transform: {translate: [1, 0]}}
+  walk_3:
+    extends: walk_2
+    overrides:
+      left_arm: {transform: {translate: [-1, 0]}}
+      right_arm: {transform: {translate: [1, 0]}}
+  walk_4:
+    extends: idle_0
+    overrides:
+      left_leg: {transform: {translate: [1, 0]}}
+      right_leg: {transform: {translate: [-1, 0]}}
+  walk_5:
+    extends: walk_4
+    overrides:
+      torso: {transform: {translate: [0, -1]}}
+      skull: {transform: {translate: [0, -1]}}
+      face: {transform: {translate: [0, -1]}}
+  walk_6:
+    extends: idle_0
+    overrides:
+      left_leg: {transform: {translate: [2, 0]}}
+      right_leg: {transform: {translate: [-1, 0]}}
+  walk_7:
+    extends: walk_6
+    overrides:
+      left_arm: {transform: {translate: [1, 0]}}
+      right_arm: {transform: {translate: [-1, 0]}}
+
+  attack_0:
+    extends: idle_0
+    overrides:
+      sword: {visible: true}
+  attack_1:
+    extends: attack_0
+    overrides:
+      right_arm:
+        operations:
+          - line: {from: [21, 15], to: [25, 17], color: bone_mid}
+          - outline: {color: outline}
+      sword: {transform: {translate: [-1, -2]}}
+  attack_2:
+    extends: attack_1
+    overrides:
+      right_arm:
+        operations:
+          - line: {from: [21, 15], to: [24, 15], color: bone_mid}
+          - outline: {color: outline}
+      sword:
+        transform: {translate: [0, 0]}
+        operations:
+          - line: {from: [22, 17], to: [24, 16], color: handle}
+          - line: {from: [24, 16], to: [29, 14], color: steel}
+          - pixels: {points: [[27, 14], [28, 14]], color: steel_light}
+          - outline: {color: outline, connectivity: 4}
+  attack_3:
+    extends: attack_0
+    overrides:
+      sword: {transform: {translate: [0, 1]}}
+      right_arm:
+        operations:
+          - line: {from: [21, 15], to: [26, 20], color: bone_mid}
+          - outline: {color: outline}
+
+animations:
+  idle:
+    fps: 8
+    loop: true
+    frames: [idle_0, idle_1, idle_2, idle_3, idle_4, idle_5]
+  walk:
+    fps: 10
+    loop: true
+    frames: [walk_0, walk_1, walk_2, walk_3, walk_4, walk_5, walk_6, walk_7]
+  attack:
+    fps: 12
+    loop: false
+    frames: [attack_0, attack_1, attack_2, attack_3]
